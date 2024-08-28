@@ -85,7 +85,7 @@ theorem ex20240822a
     rw[hz]
     exact sub_pos.mpr h3
   -- then we show z^2 + 2*u*z < ε
-  have h4 : z^2 + 2*u*z < ε := by
+  have h4 : z^2 + 2 * u * z < ε := by
     -- firs we can rewrite z in to z + u  = Real.sqrt (ε / 2 + u^2)
     have hz1 : z + u = Real.sqrt (ε / 2 + u^2) := by
       rw[hz]
@@ -136,10 +136,60 @@ theorem ex20240822a
     -- Prove the equality chain
     have eq_chain : |s n - a| * |t n - b| = |s n * t n - a * b - b * (s n - a) - a * (t n - b)| := by
       calc |s n - a| * |t n - b|
-        = |(s n - a) * (t n - b)| := by rw [abs_mul]
-        = |s n * t n - a * t n - b * s n + a * b| := by
-          congr
-          ring
+        = |(s n - a) * (t n - b)| := by rw [← abs_mul]
+        _ = |s n * t n - a * b - b * (s n - a) - a * (t n - b)| := by ring_nf
+     -- Use the triangle inequality
+    #check abs_sub_abs_le_abs_sub
+    #check abs_sub_le
+    have triangle_ineq : |s n * t n - a * b - b * (s n - a) - a * (t n - b)| ≥
+                        |s n * t n - a * b| - |b * (s n - a)| - |a * (t n - b)| := by
+      calc |s n * t n - a * b - b * (s n - a) - a * (t n - b)|
+        = |(s n * t n - a * b - b * (s n - a)) - (a * (t n - b))| := by rfl
+        _ ≥ |s n * t n - a * b - b * (s n - a)| - |a * (t n - b)| := by
+          apply abs_sub_abs_le_abs_sub
+        _ = |(s n * t n - a * b) - (b * (s n - a))| - |a * (t n - b)| := by rfl
+        _ ≥ |s n * t n - a * b| - |b * (s n - a)| - |a * (t n - b)| := by
+          gcongr
+          apply abs_sub_abs_le_abs_sub
+    calc z * z
+      ≥ |s n - a| * |t n - b| := base_ineq
+      _ = |s n * t n - a * b - b * (s n - a) - a * (t n - b)| := eq_chain
+      _ ≥ |s n * t n - a * b| - |b * (s n - a)| - |a * (t n - b)| := triangle_ineq
+      _ = |s n * t n - a * b| - |b| * |s n - a| - |a| * |t n - b| := by
+        congr
+        apply abs_mul
+        apply abs_mul
+
+  -- part 3
+  #check add_le_add
+  #check mul_le_mul_of_nonneg_left
+  #check le_of_lt
+  #check abs_nonneg
+  #check add_assoc
+  have converges : ∀ n ≥ N, |s n * t n - a * b| < ε := by
+    intro n hn
+    have ⟨hs, ht⟩ := h_bound n hn
+    calc |s n * t n - a * b|
+      _ ≤ z * z + |b| * |s n - a| + |a| * |t n - b| := by
+        linarith [h_ineq_extended n hn]
+      _ ≤ z * z + |b| * z + |a| * z := by
+        apply add_le_add
+        · apply add_le_add
+          · rfl
+          · apply mul_le_mul_of_nonneg_left
+            · exact le_of_lt hs
+            · exact abs_nonneg b
+        · apply mul_le_mul_of_nonneg_left
+          · exact le_of_lt ht
+          · exact abs_nonneg a
+      _ = z * z + 2 * u * z := by
+        ring
+      _ < ε := by
+        convert h4
+        ring
+  exact ⟨N, converges⟩
+
+
 /-
 The natural language description for ex20240822b is:
 ```text
