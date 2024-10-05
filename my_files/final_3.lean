@@ -94,9 +94,20 @@ theorem least_constant_inequality (n : Nat) (hn : n ≥ 2) :
             simp_rw [sum_mul]
             simp [mul_sum]
             ring_nf
+            have h_comm : ∀ x₁ x₂ x₃ x₄, x x₁ * x x₃ * x x₂ * x x₄ = x x₁ * x x₂ * x x₃ * x x₄ := by
+              intros x₁ x₂ x₃ x₄
+              rw [mul_assoc (x x₁) (x x₃) (x x₂), mul_comm (x x₃) (x x₂), ← mul_assoc]
             -- current goal: ⊢ ∑ x_1 : Fin n, ∑ x_2 : Fin n, ∑ x_3 : Fin n, ∑ x_4 : Fin n, x x_1 * x x_3 * x x_2 * x x_4 =
             -- ∑ i : Fin n, ∑ j : Fin n, ∑ k : Fin n, ∑ l : Fin n, x i * x j * x k * x l
-            sorry
+            apply Finset.sum_congr rfl
+            intros x₁ _
+            apply Finset.sum_congr rfl
+            intros x₂ _
+            apply Finset.sum_congr rfl
+            intros x₃ _
+            apply Finset.sum_congr rfl
+            intros x₄ _
+            exact h_comm x₁ x₂ x₃ x₄
           rw [h2]
         rw [expand_sum_pow]
 
