@@ -9,19 +9,11 @@ open Finset
 
 
 
-theorem least_constant_inequality (n : Nat) (hn : n ≥ 2) :
+theorem constant_inequality (n : Nat) (hn : n ≥ 2) :
   (∃ C : Real, C = 1/8 ∧
     (∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
       ∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
         x i * x j * (x i^2 + x j^2) ≤ C * (∑ i, x i)^4) ∧
-    (∀ C' : Real,
-      ∀ x : Fin n → Real, (∀ i, x i ≥ 0) ∧
-        ∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
-          x i * x j * (x i^2 + x j^2) ≤ C' * (∑ i, x i)^4 → C' ≥ C) ∧
-    (∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
-        (∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
-          x i * x j * (x i^2 + x j^2) = (1/8) * (∑ i, x i)^4) →
-        (∃ i j : Fin n, i ≠ j ∧ x i = x j ∧ x i > 0 ∧ ∀ k, k ≠ i → k ≠ j → x k = 0)) ∧
     (∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
          (∃ i j : Fin n, i ≠ j ∧ x i = x j ∧ x i > 0 ∧ ∀ k, k ≠ i → k ≠ j → x k = 0)  →
          (∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
@@ -371,24 +363,6 @@ theorem least_constant_inequality (n : Nat) (hn : n ≥ 2) :
       _ = (1 / 8) * (∑ i, x i) ^ 4 := by
         linarith
 
-  -- Step 2: Prove that 1/8 is the smallest constant
-  have h_smallest : ∀ C' : Real,
-      ∀ x : Fin n → Real, (∀ i, x i ≥ 0) ∧
-        ∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
-          x i * x j * (x i^2 + x j^2) ≤ C' * (∑ i, x i)^4 → C' ≥ 1/8 := by
-    -- Construct a specific x that violates the inequality for C' < 1/8
-    -- Hint: Consider x where only two elements are non-zero and equal
-    sorry
-
-  -- Step 3: Prove the equality condition
-  have forward_dir : ∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
-    (∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
-      x i * x j * (x i^2 + x j^2) = (1/8) * (∑ i, x i)^4) →
-    (∃ i j : Fin n, i ≠ j ∧ x i = x j ∧ x i > 0 ∧ ∀ k, k ≠ i → k ≠ j → x k = 0) := by
-    -- Show that equality holds iff x has exactly two non-zero equal elements
-    intros x h_nonneg
-    sorry
-
   have backward_dir : ∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
          (∃ i j : Fin n, i ≠ j ∧ x i = x j ∧ x i > 0 ∧ ∀ k, k ≠ i → k ≠ j → x k = 0)  →
          (∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
@@ -408,7 +382,7 @@ theorem least_constant_inequality (n : Nat) (hn : n ≥ 2) :
         #check sum_eq_add_sum_diff_singleton
         rw [sum_eq_add_sum_diff_singleton i_in_set]
         let new_s := univ \ {i}
-        have j_in_sub_set: j ∈ new_s := by
+        have j_in_sub_set: j ∈ univ \ {i} := by
           rw [mem_sdiff]
           constructor
           {
@@ -426,23 +400,222 @@ theorem least_constant_inequality (n : Nat) (hn : n ≥ 2) :
           rw [sum_eq_add_sum_diff_singleton j_in_sub_set]
         rw [except_j_sum]
         rw [← add_assoc]
-        simp_all
-        sorry
+        congr
+        -- #check sdiff_singleton_eq_filter
+        -- rw [← sdiff_singleton_eq_filter]
+        have univ_exclude: new_s \ {j} = univ \ {i,j} := by
+          simp [new_s]
+          ext k
+          simp only [mem_sdiff, mem_univ, true_and, mem_insert, mem_singleton]
+          tauto
+        rw [univ_exclude]
+        ext k
+        simp only [mem_sdiff, mem_filter, mem_univ, true_and, mem_singleton]
+        constructor
+        {
+          intro h
+          constructor
+          {
+            intro h_eq
+            apply h
+            simp_all
+          }
+          {
+            intro h_eq
+            apply h
+            simp_all
+          }
+        }
+        {
+          rintro ⟨h_ki, h_kj⟩
+          intro h_mem
+          simp_all
+        }
+      rw [h_sub_sum]
+      calc
+        x i + x j + ∑ k ∈ filter (fun k => k ≠ i ∧ k ≠ j) univ, x k =
+           x i + x i + ∑ k ∈ filter (fun k => k ≠ i ∧ k ≠ j) univ, x k := by
+          rw [h_x_eq]
+        _ = 2 * x i  + ∑ k ∈ filter (fun k => k ≠ i ∧ k ≠ j) univ, x k := by
+          ring
+        _ = 2 * x i + 0 := by
+          have other_zero: ∑ k ∈ filter (fun k => k ≠ i ∧ k ≠ j) univ, x k = 0 := by
+            apply Finset.sum_eq_zero
+            intros k hk
+            simp only [mem_filter, mem_univ, true_and] at hk
+            exact h_zeros k hk.1 hk.2
+          rw [other_zero]
+        _ = 2 * x i := by
+          ring
 
-      simp_all [h_zeros, h_x_eq, Finset.sum_eq_add]
-      -- simp_all [h_zeros, h_x_eq]
-      -- rw [Finset.sum_eq_add]
-      #check add_eq_add_iff_eq_and_eq
-      sorry
-      -- Now simplify the double sum (sum over i, sum over j > i)
     have h_simplify : ∑ i, ∑ j in filter (λ j => j > i) univ, x i * x j * (x i ^ 2 + x j ^ 2) =
       s * s * (s^2 + s^2) := by
-      simp [h_zeros]
-      -- rw [h_x_eq]
-      sorry
+      -- #check Finset.sum_eq_single
+      -- apply Finset.sum_eq_single h_zeros
+      have h_sum : ∑ i, ∑ j in filter (λ j => j > i) univ, x i * x j * (x i ^ 2 + x j ^ 2)
+                = x i * x j * (x i ^ 2 + x j ^ 2):= by
+        have h_zero : ∀ a b : Fin n, (a ≠ i ∧ a ≠ j) ∨ (b ≠ i ∧ b ≠ j) → x a * x b * (x a ^ 2 + x b ^ 2) = 0 := by
+          intros a b hab
+          cases hab
+          case inl h₁ =>
+            have xa_zero : x a = 0 := h_zeros a h₁.left h₁.right
+            rw [xa_zero, zero_mul, zero_mul]
+          case inr h₂ =>
+            have xb_zero : x b = 0 := h_zeros b h₂.left h₂.right
+            rw [xb_zero, mul_zero, zero_mul]
+        have h_sum_eq_lt (h_lt : i < j) : ∑ a : Fin n, ∑ b in univ.filter (fun b => b > a), x a * x b * (x a ^ 2 + x b ^ 2) =
+              x i * x j * (x i ^ 2 + x j ^ 2) := by
+          rw [sum_eq_single i _ _]
+          · rw [sum_eq_single j _ _]
+            -- Show that for a = i and b = j, we have b > a
+            · intro b hib hbj
+              have xb_zero: x b = 0 := by
+                have b_not_equal_i: b ≠ i := by
+                  have h_b_gt_i : b > i := (mem_filter.mp hib).2
+                  exact ne_of_gt h_b_gt_i
+                apply h_zeros b b_not_equal_i hbj
+              rw [xb_zero]
+              ring
+            · intro h_contra
+              exfalso
+              apply h_contra
+              simp [mem_filter, h_lt]
+          · intros a ha ha_ne
+            rw [sum_eq_zero]
+            intros b hb
+            #check ne_of_mem_of_not_mem
+            have ha_ne_i : a ≠ i := ha_ne
+            by_cases ha_eq_j : a = j
+            case pos =>
+              -- Then a = j
+              rw [ha_eq_j] at hb
+              -- Now, b ∈ filter (fun b => b > a) univ
+              -- So b > a = j
+              have h_b_gt_j : b > j := (mem_filter.mp hb).2
+              -- Since i < j < b, b ≠ i
+              have h_b_ne_i : b ≠ i := ne_of_gt (lt_trans h_lt h_b_gt_j)
+              -- Since b > j, b ≠ j
+              have h_b_ne_j : b ≠ j := ne_of_gt h_b_gt_j
+              -- Therefore, x b = 0
+              have h_xb_zero : x b = 0 := h_zeros b h_b_ne_i h_b_ne_j
+              rw [h_xb_zero]
+              simp
+            case neg =>
+              -- Then a ≠ i and a ≠ j, so x a = 0
+              have h_xa_zero : x a = 0 := h_zeros a ha_ne_i ha_eq_j
+              rw [h_xa_zero]
+              simp
+          · intro h_contra
+            exfalso
+            have h_i_in_univ : i ∈ univ := Finset.mem_univ i
+            exact h_contra h_i_in_univ
+        have h_sum_eq_gt (h_gt : i > j) : ∑ a : Fin n, ∑ b in univ.filter (fun b => b > a), x a * x b * (x a ^ 2 + x b ^ 2) =
+            x i * x j * (x i ^ 2 + x j ^ 2) := by
+          rw [sum_eq_single j _ _]
+          -- Handle the inner sum over b when a = j
+          · rw [sum_eq_single i _ _]
+            -- For a = j and b = i, b > a holds because i > j
+            · rw [h_x_eq]
+            -- For other b ≠ i, the terms are zero
+            · intros b hb hb_ne
+              have h_b_ne_i : b ≠ i := hb_ne
+              have h_b_gt_j : b > j := by
+                apply (mem_filter.mp hb).2
+              have h_b_ne_j : b ≠ j := ne_of_gt h_b_gt_j
+              -- Since b ≠ i and b ≠ j, x b = 0
+              have h_xb_zero : x b = 0 := h_zeros b h_b_ne_i h_b_ne_j
+              rw [h_xb_zero]
+              simp
+            -- Ensure i is in the filtered set
+            · intro h_contra
+              exfalso
+              have h_i_mem : i ∈ univ.filter (λ b => b > j) := by
+                apply mem_filter.mpr
+                exact ⟨mem_univ i, h_gt⟩
+              exact h_contra h_i_mem
+          -- For a ≠ j, the outer sum terms are zero
+          · intros a ha ha_ne
+            rw [sum_eq_zero]
+            intros b hb
+            -- Since a ≠ j, consider cases
+            by_cases ha_eq_i : a = i
+            -- Case when a = i
+            case pos =>
+              -- b > a implies b > i
+              #check mem_filter.mp hb
+              have h_b_gt_i : b > i := by
+                rw [← ha_eq_i]
+                apply (mem_filter.mp hb).2
+              -- Since b > i and x b ≠ 0 only when b = i or b = j, and b ≠ i
+              have h_b_ne_i : b ≠ i := ne_of_gt h_b_gt_i
+              by_cases hb_eq_j : b = j
+              -- Subcase when b = j
+              case pos =>
+                -- b = j, a = i, but b > a requires j > i, which contradicts h_gt
+                exfalso
+                have contra_j_gt_i : i < j := by
+                  rw [← hb_eq_j]
+                  rw [← gt_iff_lt]
+                  exact h_b_gt_i
+                exact lt_asymm contra_j_gt_i h_gt
+              case neg =>
+                -- Subcase when b ≠ j Then x b = 0
+                have h_xb_zero : x b = 0 := h_zeros b h_b_ne_i hb_eq_j
+                rw [h_xb_zero]
+                simp
+            case neg =>
+              have h_xa_zero : x a = 0 := h_zeros a ha_eq_i ha_ne
+              rw [h_xa_zero]
+              simp
+          · intro h_contra
+            exfalso
+            have h_j_in_univ : j ∈ univ := mem_univ j
+            exact h_contra h_j_in_univ
+        have h_lt_or_gt : i < j ∨ i > j := lt_or_gt_of_ne h_ij_ne
+        by_cases hij_ineq : i < j
+        #check h_sum_eq_lt
+        case pos =>
+          exact h_sum_eq_lt hij_ineq
+        case neg =>
+          have i_gt_j: i > j := by
+            rw [gt_iff_lt]
+            have j_lteq_i: j ≤ i := by
+              rw [← not_lt]
+              exact hij_ineq
+            #check lt_of_le_of_ne
+            apply lt_of_le_of_ne j_lteq_i h_ij_ne.symm
+          exact h_sum_eq_gt i_gt_j
+      rw [h_sum]
+      calc
+        x i * x j * (x i ^ 2 + x j ^ 2) = s * x j * (s^2 + x j ^ 2):= by
+          ring
+        _ = s * x i * (s^2 + x i ^ 2) := by
+          rw [h_x_eq]
+        _ = s * s * (s^2 + s ^ 2) := by
+          ring
     rw [h_simplify, h_sum]
     simp
     rw [mul_pow]
     ring
   -- Combine the above steps to complete the proof
-  exact ⟨1/8, rfl, h_inequality, h_smallest, forward_dir, backward_dir⟩
+  exact ⟨1/8, rfl, h_inequality, backward_dir⟩
+
+
+theorem complete_least_constant_inequality (n : Nat) (hn : n ≥ 2) :
+  (∃ C : Real, C = 1/8 ∧
+    (∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
+      ∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
+        x i * x j * (x i^2 + x j^2) ≤ C * (∑ i, x i)^4) ∧
+    (∀ C' : Real,
+      ∀ x : Fin n → Real, (∀ i, x i ≥ 0) ∧
+        ∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
+          x i * x j * (x i^2 + x j^2) ≤ C' * (∑ i, x i)^4 → C' ≥ C) ∧
+    (∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
+        (∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
+          x i * x j * (x i^2 + x j^2) = (1/8) * (∑ i, x i)^4) →
+        (∃ i j : Fin n, i ≠ j ∧ x i = x j ∧ x i > 0 ∧ ∀ k, k ≠ i → k ≠ j → x k = 0)) ∧
+    (∀ x : Fin n → Real, (∀ i, x i ≥ 0) →
+         (∃ i j : Fin n, i ≠ j ∧ x i = x j ∧ x i > 0 ∧ ∀ k, k ≠ i → k ≠ j → x k = 0)  →
+         (∑ i in Finset.univ, ∑ j in Finset.univ.filter (λ j => j > i),
+          x i * x j * (x i^2 + x j^2) = (1/8) * (∑ i, x i)^4)) ) := by
+  sorry
