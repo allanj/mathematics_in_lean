@@ -97,7 +97,7 @@ instance instCommRing : CommRing GaussInt where
   add_zero := by
     intro
     ext <;> simp
-  add_left_neg := by
+  neg_add_cancel := by
     intro
     ext <;> simp
   add_comm := by
@@ -150,7 +150,7 @@ example (a b : ℤ) : b ≠ 0 → 0 ≤ a % b :=
   Int.emod_nonneg a
 
 example (a b : ℤ) : b ≠ 0 → a % b < |b| :=
-  Int.emod_lt a
+  Int.emod_lt_abs a
 
 namespace Int
 
@@ -171,15 +171,14 @@ theorem abs_mod'_le (a b : ℤ) (h : 0 < b) : |mod' a b| ≤ b / 2 := by
   have := Int.emod_lt_of_pos (a + b / 2) h
   have := Int.ediv_add_emod b 2
   have := Int.emod_lt_of_pos b zero_lt_two
-  revert this; intro this -- FIXME, this should not be needed
   linarith
 
 theorem mod'_eq (a b : ℤ) : mod' a b = a - b * div' a b := by linarith [div'_add_mod' a b]
 
 end Int
 
-theorem sq_add_sq_eq_zero {α : Type*} [LinearOrderedRing α] (x y : α) :
-    x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
+theorem sq_add_sq_eq_zero {α : Type*} [Ring α] [LinearOrder α] [IsStrictOrderedRing α]
+    (x y : α) : x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
   sorry
 namespace GaussInt
 
@@ -246,8 +245,8 @@ theorem coe_natAbs_norm (x : GaussInt) : (x.norm.natAbs : ℤ) = x.norm :=
 theorem natAbs_norm_mod_lt (x y : GaussInt) (hy : y ≠ 0) :
     (x % y).norm.natAbs < y.norm.natAbs := by
   apply Int.ofNat_lt.1
-  simp only [Int.coe_natAbs, abs_of_nonneg, norm_nonneg]
-  apply norm_mod_lt x hy
+  simp only [Int.natCast_natAbs, abs_of_nonneg, norm_nonneg]
+  exact norm_mod_lt x hy
 
 theorem not_norm_mul_left_lt_norm (x : GaussInt) {y : GaussInt} (hy : y ≠ 0) :
     ¬(norm (x * y)).natAbs < (norm x).natAbs := by
@@ -263,7 +262,7 @@ instance : EuclideanDomain GaussInt :=
     quotient := (· / ·)
     remainder := (· % ·)
     quotient_mul_add_remainder_eq :=
-      fun x y ↦ by simp only; rw [mod_def, add_comm] ; ring
+      fun x y ↦ by rw [mod_def, add_comm] ; ring
     quotient_zero := fun x ↦ by
       simp [div_def, norm, Int.div']
       rfl
@@ -273,6 +272,6 @@ instance : EuclideanDomain GaussInt :=
     mul_left_not_lt := not_norm_mul_left_lt_norm }
 
 example (x : GaussInt) : Irreducible x ↔ Prime x :=
-  PrincipalIdealRing.irreducible_iff_prime
+  irreducible_iff_prime
 
 end GaussInt
